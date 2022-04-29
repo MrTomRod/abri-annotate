@@ -4,8 +4,15 @@ This script runs ABRicate using multiple reference databases and maps the result
 
 ## Requirements
 
+- Python 3.9+
 - Working `abricate` (v1+) in `$PATH` or docker
 - Python packages `pandas` and `fire`
+
+### Installation
+
+```bash
+pip install git+https://github.com/MrTomRod/abri-annotate
+```
 
 ## Input
 
