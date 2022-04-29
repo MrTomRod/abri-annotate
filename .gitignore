@@ -1,0 +1,9 @@
+/test/out
+/test/_*
+/test/*.gbk
+/.idea
+/other_scripts
+/venv
+/build
+/abri_annotate.egg-info
+__pycache__
