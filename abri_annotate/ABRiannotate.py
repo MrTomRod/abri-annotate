@@ -196,9 +196,9 @@ class ABRiannotate:
             for a in as_:
                 assert a in annotation_to_description, f'Failed to describe annotation: {a}'
 
-        self.__dump(outdir, file=f'{genome_identifier}.abriannotate.annotations.AR',
+        self.__dump(outdir, file=f'{genome_identifier}.abricate.annotations.AR',
                     content=gene_to_annotations, values_are_lists=True)
-        self.__dump(outdir, file=f'{genome_identifier}.abriannotate.descriptions.AR',
+        self.__dump(outdir, file=f'{genome_identifier}.abricate.descriptions.AR',
                     content=annotation_to_description)
 
         markdown = create_markdown(self.version, genome_identifier=genome_identifier, dbs=dbs,
