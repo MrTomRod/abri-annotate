@@ -1,4 +1,4 @@
-from .ABRiannotate import ABRiannotate, os, logging
+from .ABRiannotate import ABRiannotate, os, logger
 
 
 class ABRiannotateBash(ABRiannotate):
@@ -23,11 +23,13 @@ class ABRiannotateBash(ABRiannotate):
 def runner(
         abricate_path: [str],
         gbk: str,
+        genome_identifier: str,
         outdir: str,
+        markdown_file: str = None,
         dbs: [str] = None,
         merge_annotations: bool = False,
-        verbose: bool = False,
-        skip_bad_hits: bool = False
+        verbose: bool = True,
+        skip_bad_hits: bool = False,
 ):
     gbka = ABRiannotateBash(
         abricate_path=abricate_path,
@@ -35,16 +37,12 @@ def runner(
         skip_bad_hits=skip_bad_hits
     )
 
-    gbka.init_outdir(outdir)
+    gbka.init_outdir_logging(outdir, genome_identifier, logfile=verbose)
 
-    if verbose:
-        logging.getLogger().setLevel(logging.INFO)
-        logging.info(gbka.version)
-        logging.info(gbka.db_versions)
+    gta, atd = gbka.abriannotate_multidb(gbk=gbk, genome_identifier=genome_identifier,
+                                         dbs=dbs, outdir=outdir, markdown_file=markdown_file)
 
-    gta, atd = gbka.abriannotate_multidb(gbk=gbk, dbs=dbs, outdir=outdir)
-
-    logging.info(f'Success! ABRicate found {len(atd)} annotations for {len(gta)} genes.')
+    logger.info(f'Success! ABRicate found {len(atd)} annotations for {len(gta)} genes.')
 
 
 def main():

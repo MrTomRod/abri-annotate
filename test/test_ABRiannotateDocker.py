@@ -9,7 +9,8 @@ CURRENT_IMAGE = 'quay.io/biocontainers/abricate:1.0.1--ha8f3691_1'
 
 class TestABRiannotate(TestCase):
     def setUp(self) -> None:
-        self.abr = ABRiannotate(abricate_docker_image=CURRENT_IMAGE)
+        self.docker_cmd = 'podman'
+        self.abr = ABRiannotate(abricate_docker_image=CURRENT_IMAGE, docker_cmd=self.docker_cmd)
 
     def test_version(self):
         print(self.abr.version)
@@ -25,9 +26,11 @@ class TestABRiannotate(TestCase):
         runner(
             abricate_docker_image=CURRENT_IMAGE,
             gbk='FAM23220-i1-1.1.gbk',
-            verbose=False,
+            genome_identifier='FAM23220-i1-1.1',
+            verbose=True,
             outdir='out/outmerge',
             merge_annotations=True,
+            docker_cmd=self.docker_cmd
         )
 
     def test_runner_2(self):
@@ -35,10 +38,13 @@ class TestABRiannotate(TestCase):
         runner(
             abricate_docker_image=CURRENT_IMAGE,
             gbk='FAM17654-i1-1.1.gbk',
-            verbose=False,
+            genome_identifier='FAM17654-i1-1.1',
+            verbose=True,
             outdir='out/prob',
             merge_annotations=True,
             dbs=['plasmidfinder'],
+            docker_cmd=self.docker_cmd,
+            markdown_file='out/runner2.md'
         )
 
     def test_runner_3(self):
@@ -46,7 +52,9 @@ class TestABRiannotate(TestCase):
         runner(
             abricate_docker_image=CURRENT_IMAGE,
             gbk='FAM23220-i1-1.1.gbk',
-            verbose=False,
+            genome_identifier='FAM23220-i1-1.1',
+            verbose=True,
             outdir='out/nomerge',
             merge_annotations=False,
+            docker_cmd=self.docker_cmd
         )

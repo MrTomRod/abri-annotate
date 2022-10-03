@@ -3,11 +3,15 @@ from io import StringIO
 import logging
 from subprocess import run, PIPE
 from functools import cached_property
+from tempfile import TemporaryDirectory
 from typing import Union
 
 import pandas as pd
 from Bio import SeqIO, BiopythonWarning
 import warnings
+
+from .markdown_generator import create_markdown, inject_markdown
+from .utils import logger, init_logfile
 
 expected_columns = {'#FILE', 'SEQUENCE', 'START', 'END', 'STRAND', 'GENE', 'COVERAGE', 'COVERAGE_MAP', 'GAPS',
                     '%COVERAGE', '%IDENTITY', 'DATABASE', 'ACCESSION', 'PRODUCT', 'RESISTANCE'}
@@ -22,10 +26,14 @@ class ABRiannotate:
     def _build_cmd(self, args: [str], file: str = None) -> [str]:
         raise NotImplementedError('This is an abstract class!')
 
-    def init_outdir(self, outdir):
+    def init_outdir_logging(self, outdir: str, genome_identifier: str, logfile: bool = False):
         os.makedirs(outdir, exist_ok=True)
-        self.__dump(outdir, file=f'abricate.version.log', content=self.version)
-        self.__dump(outdir, file=f'abricate.dbs.log', content=self.db_versions)
+
+        if logfile:
+            init_logfile(genome_identifier, logfile=f'{outdir}/{genome_identifier}.abricate.log')
+
+        logger.info(f'Annotating {genome_identifier} with {self.version}...')
+        logger.info(f'Available databases: {self.db_versions}...')
 
     @cached_property
     def version(self) -> str:
@@ -63,7 +71,7 @@ class ABRiannotate:
             file=file
         )
 
-        logging.info(' '.join(command))
+        logger.info(' '.join(command))
 
         subprocess = run(command, stdout=PIPE, stderr=PIPE, encoding='ascii')
 
@@ -74,6 +82,7 @@ class ABRiannotate:
         if outdir:
             self.__dump(outdir, file=f'db_{db}.original.tsv', content=subprocess.stdout)
 
+        logger.debug(f'Output:\n{subprocess.stdout}')
         abricate_df = pd.read_csv(StringIO(subprocess.stdout), sep="\t")
         columns = set(abricate_df.columns.tolist())
         assert columns == expected_columns, f'Columns do not match: {columns}! Please update abricate to v1+'
@@ -81,7 +90,8 @@ class ABRiannotate:
         return abricate_df
 
     def abriannotate(
-            self, gbk: str, db: str, genes_df: pd.DataFrame = None, save_output=True, outdir: str = None
+            self, gbk: str, db: str, genes_df: pd.DataFrame = None,
+            save_output=True, outdir: str = None, anno_prefix: str = None
     ) -> (dict, dict):
         if outdir:
             assert os.path.isdir(outdir), F'outdir does not exist: {outdir}'
@@ -107,7 +117,7 @@ class ABRiannotate:
 
             # print warning if closest gene does not match hit well
             if best_gene.distance > hit_length / 20:
-                logging.warning(
+                logger.warning(
                     f'Error in {gbk}:{abricate_hit.SEQUENCE}:{hit_location}:{abricate_hit.GENE}, db={db}\n'
                     f'\tDistance between closest gene ({best_gene.name}) and hit is large: best_gene.distance={best_gene.distance}'
                 )
@@ -117,8 +127,12 @@ class ABRiannotate:
             # (over)write result to dict
             annotation_name = self.filter_string(
                 abricate_hit.GENE if self.merge_annotations else f'{db}:{abricate_hit.GENE}')
-            gene_to_annotations[best_gene.name] = gene_to_annotations.get(best_gene.name, set()).union(
-                [annotation_name])
+            if anno_prefix:
+                annotation_name = f'{anno_prefix}{annotation_name}'
+
+            gene_to_annotations[best_gene.name] = gene_to_annotations \
+                .get(best_gene.name, set()) \
+                .union([annotation_name])
             annotation_to_description[annotation_name] = description
 
         if outdir and save_output:
@@ -127,10 +141,28 @@ class ABRiannotate:
 
         return gene_to_annotations, annotation_to_description
 
-    def abriannotate_multidb(self, gbk: str, dbs: [str] = None, outdir: str = None) -> (dict, dict):
-        if outdir:
-            assert os.path.isdir(outdir), F'outdir does not exist: {outdir}'
-            assert ' ' not in outdir, F'outdir path may not contain blanks: {outdir}'
+    def abriannotate_multidb(
+            self,
+            gbk: str,
+            genome_identifier: str,
+            outdir: str,
+            dbs: [str] = None,
+            abricate_dir: str = None,
+            anno_prefix: str = 'AR:',
+            markdown_file: str = None
+    ) -> (dict, dict):
+        if abricate_dir:
+            logger.debug(f'Storing raw output of ABRicate here: {abricate_dir=}')
+            os.makedirs(abricate_dir, exist_ok=True)
+            tempdir, workdir = None, abricate_dir
+        else:
+            tempdir = TemporaryDirectory()
+            workdir = tempdir.name
+            logger.debug(f'Created temporary directory: {workdir}')
+
+        assert os.path.isdir(outdir), F'outdir does not exist: {outdir}'
+        assert ' ' not in outdir, F'outdir path may not contain blanks: {outdir}'
+
         if dbs is None:
             dbs = ['card', 'ncbi', 'megares', 'argannot', 'vfdb', 'resfinder', 'ecoli_vf', 'ecoh', 'plasmidfinder']
         for db in dbs:
@@ -142,29 +174,39 @@ class ABRiannotate:
         annotation_to_description = {}
 
         for db in reversed(dbs):
-            logging.info(f'Working on db={db} (gbk={gbk})')
+            logger.info(f'Working on db={db} (gbk={gbk})')
 
             new_gene_to_annotations, new_annotation_to_description = self.abriannotate(
-                gbk=gbk, db=db, genes_df=genes_df, save_output=False, outdir=outdir
-            )
+                gbk=gbk, db=db, genes_df=genes_df, save_output=False, outdir=workdir, anno_prefix=anno_prefix)
 
             gene_to_annotations = self.__merge_dicts(
                 old=gene_to_annotations, new=new_gene_to_annotations, replace=self.merge_annotations
             )
             annotation_to_description.update(new_annotation_to_description)
 
-        removed_annotations = set(annotation_to_description).difference(
-            a for annos in gene_to_annotations.values() for a in annos)
+        used_annotations = set(a for as_ in gene_to_annotations.values() for a in as_)
+        obsolete_annotations = {a for a in annotation_to_description if a not in used_annotations}
+
         if not self.merge_annotations:
-            assert len(removed_annotations) == 0
-        for anno in removed_annotations:
+            assert len(obsolete_annotations) == 0
+        for anno in obsolete_annotations:
             del annotation_to_description[anno]
 
-        if outdir:
-            self.__dump(outdir, file=f'abriannotate.{"-".join(dbs)}.annotations.tsv', content=gene_to_annotations,
-                        keys_are_lists=True)
-            self.__dump(outdir, file=f'abriannotate.{"-".join(dbs)}.descriptions.tsv',
-                        content=annotation_to_description)
+        for as_ in gene_to_annotations.values():
+            for a in as_:
+                assert a in annotation_to_description, f'Failed to describe annotation: {a}'
+
+        self.__dump(outdir, file=f'{genome_identifier}.abriannotate.annotations.AR',
+                    content=gene_to_annotations, values_are_lists=True)
+        self.__dump(outdir, file=f'{genome_identifier}.abriannotate.descriptions.AR',
+                    content=annotation_to_description)
+
+        markdown = create_markdown(self.version, genome_identifier=genome_identifier, dbs=dbs,
+                                   n_genes=len(gene_to_annotations), anno_type=anno_prefix.strip(':_-'))
+        if markdown_file:
+            inject_markdown(markdown_file, markdown)
+        else:
+            self.__dump(outdir, file=f'{genome_identifier}.vibrant.summary.md', content=markdown)
 
         return gene_to_annotations, annotation_to_description
 
@@ -183,8 +225,8 @@ class ABRiannotate:
         return genes_df
 
     @staticmethod
-    def __dump(outdir: str, file: str, content: Union[str, dict, pd.DataFrame], keys_are_lists: bool = False):
-        if keys_are_lists:
+    def __dump(outdir: str, file: str, content: Union[str, dict, pd.DataFrame], values_are_lists: bool = False):
+        if values_are_lists:
             content = {k: ', '.join(vs) for k, vs in content.items()}
         with open(os.path.join(outdir, file), 'w') as f:
             if type(content) is str:
