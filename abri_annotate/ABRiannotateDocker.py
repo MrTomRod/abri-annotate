@@ -42,7 +42,7 @@ def runner(
         uid_gid: str = None,
         docker_cmd: str = None,
 ):
-    gbka = ABRiannotateDocker(
+    abr = ABRiannotateDocker(
         abricate_docker_image=abricate_docker_image,
         merge_annotations=merge_annotations,
         skip_bad_hits=skip_bad_hits,
@@ -50,9 +50,9 @@ def runner(
         uid_gid=uid_gid
     )
 
-    gbka.init_outdir_logging(outdir, genome_identifier, logfile=verbose)
+    abr.init_outdir_logging(outdir, genome_identifier, logfile=verbose)
 
-    gta, atd = gbka.abriannotate_multidb(gbk=gbk, genome_identifier=genome_identifier, dbs=dbs, outdir=outdir,
+    gta, atd = abr.abriannotate_multidb(gbk=gbk, genome_identifier=genome_identifier, dbs=dbs, outdir=outdir,
                                          markdown_file=markdown_file)
 
     logger.info(f'Success! ABRicate found {len(atd)} annotations for {len(gta)} genes.')

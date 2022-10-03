@@ -206,7 +206,7 @@ class ABRiannotate:
         if markdown_file:
             inject_markdown(markdown_file, markdown)
         else:
-            self.__dump(outdir, file=f'{genome_identifier}.vibrant.summary.md', content=markdown)
+            self.__dump(outdir, file=f'{genome_identifier}.abricate.summary.md', content=markdown)
 
         return gene_to_annotations, annotation_to_description
 

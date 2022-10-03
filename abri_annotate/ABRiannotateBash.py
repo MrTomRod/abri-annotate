@@ -31,15 +31,15 @@ def runner(
         verbose: bool = True,
         skip_bad_hits: bool = False,
 ):
-    gbka = ABRiannotateBash(
+    abr = ABRiannotateBash(
         abricate_path=abricate_path,
         merge_annotations=merge_annotations,
         skip_bad_hits=skip_bad_hits
     )
 
-    gbka.init_outdir_logging(outdir, genome_identifier, logfile=verbose)
+    abr.init_outdir_logging(outdir, genome_identifier, logfile=verbose)
 
-    gta, atd = gbka.abriannotate_multidb(gbk=gbk, genome_identifier=genome_identifier,
+    gta, atd = abr.abriannotate_multidb(gbk=gbk, genome_identifier=genome_identifier,
                                          dbs=dbs, outdir=outdir, markdown_file=markdown_file)
 
     logger.info(f'Success! ABRicate found {len(atd)} annotations for {len(gta)} genes.')
