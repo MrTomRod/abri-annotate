@@ -20,11 +20,21 @@ pip install git+https://github.com/MrTomRod/abri-annotate
 
 ## Usage
 
+### Docker
+
+```bash
+git clone https://github.com/MrTomRod/abri-annotate/ && cd abri-annotate
+docker build . --tag abri_annotate
+docker run --rm -it -v ./:/data abri_annotate:latest bash
+# In here, you can use abriannotate-bash as explained below.
+```
+
 ### Bash
 
 ```shell
+# use python to run docker container
 abriannotate-docker \
-  --abricate-docker-image="quay.io/biocontainers/abricate:1.0.1--ha8f3691_1" \
+  --abricate-docker-image="staphb/prokka" \
   --gbk=test/assembly.gbk \
   --genome_identifier='identifier' \
   --dbs=[card,resfinder] \

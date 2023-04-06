@@ -118,7 +118,7 @@ class ABRiannotate:
             # print warning if closest gene does not match hit well
             if best_gene.distance > hit_length / 20:
                 logger.warning(
-                    f'Error in {gbk}:{abricate_hit.SEQUENCE}:{hit_location}:{abricate_hit.GENE}, db={db}\n'
+                    f'{gbk}:{abricate_hit.SEQUENCE}:{hit_location}:{abricate_hit.GENE}, db={db}\n'
                     f'\tDistance between closest gene ({best_gene.name}) and hit is large: best_gene.distance={best_gene.distance}'
                 )
                 if self.skip_bad_hits:
@@ -164,7 +164,7 @@ class ABRiannotate:
         assert ' ' not in outdir, F'outdir path may not contain blanks: {outdir}'
 
         if dbs is None:
-            dbs = ['card', 'ncbi', 'megares', 'argannot', 'vfdb', 'resfinder', 'ecoli_vf', 'ecoh', 'plasmidfinder']
+            dbs = ['card', 'ncbi', 'megares', 'argannot', 'vfdb', 'resfinder', 'ecoli_vf', 'ecoh', 'plasmidfinder', 'insaflu']
         for db in dbs:
             assert db in self.db_versions.index, f'db={db} does not exist. ABRicate has these dbs: {self.db_versions.index.to_list()}'
 

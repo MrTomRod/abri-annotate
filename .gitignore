@@ -1,6 +1,7 @@
 /test/out
 /test/_*
 /test/*.gbk
+/test/*.md
 /.idea
 /other_scripts
 /venv
