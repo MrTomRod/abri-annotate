@@ -1,0 +1,24 @@
+variables:
+  DOCKER_DRIVER: overlay2
+  CHECK_DIR: ${CI_PROJECT_DIR}/ci/logs
+  DOCKER_TLS_CERTDIR: ""
+
+cache:
+  key: ${CI_JOB_NAME}
+
+stages:
+  - build
+
+abriannotate:
+  image: docker:24.0.5
+  stage: build
+  services:
+    - docker:24.0.5-dind
+  variables:
+    IMAGE_TAG: $CI_REGISTRY_IMAGE/$CI_JOB_NAME:$CI_COMMIT_TAG
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $IMAGE_TAG docker/$CI_JOB_NAME
+    - docker push $IMAGE_TAG
+  only:
+    - tags
