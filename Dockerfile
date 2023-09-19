@@ -1,4 +1,4 @@
-FROM staphb/abricate
+FROM staphb/abricate:1.0.1-insaflu-220727
 # https://github.com/StaPH-B/docker-builds/tree/master/abricate
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -17,8 +17,6 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 RUN pip install -U fire pandas biopython==1.79
 
 # install vibr_annotate
-COPY . /abri_annotate
-WORKDIR /abri_annotate
-RUN pip install . && rm -rf /abri_annotate
+RUN pip install git+https://github.com/MrTomRod/abri-annotate
 
 WORKDIR /data

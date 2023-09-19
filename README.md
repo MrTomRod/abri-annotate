@@ -45,12 +45,13 @@ abriannotate-docker \
   --docker_cmd=podman
 
 
+# Conda: abricate_bash="['conda', 'run', '-n', 'abricate', 'abricate']"
 abriannotate-bash \
-  --abricate_path="['conda', 'run', '-n', 'abricate', 'abricate']" \
+  --abricate_path="['abricate']" \
   --gbk=test/assembly.gbk \
   --genome_identifier='identifier' \
   --dbs="['argannot', 'card', 'ecoh', 'ncbi', 'plasmidfinder', 'resfinder', 'vfdb']" \
-  --outdir=test/out/YY \
+  --outdir=test/out/ZZ \
   --merge_annotations=False \
   --verbose=False \
   --skip_bad_hits=False
